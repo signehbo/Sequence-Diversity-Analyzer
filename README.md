@@ -38,7 +38,7 @@ When you run the tool, your browser will open and connect to the Streamlit appli
 - **Upload a FASTA file**: The tool accepts a multi-sequence FASTA file as input.
 - **Align sequences**: The tool automatically aligns sequences using MAFFT.
 - **Compute conservation scores**: Each position in the alignment receives a conservation score, indicating how conserved the residue is across sequences.
-- **View a consensus sequence**: The most common residues at each position are displayed.
+- **View a consensus sequence**: The most common residues at each position are displayed. The user can choose between two tie-breaking strategies for consensus calculation.
 - **Visualize conservation**: A graph plots conservation scores across the sequence, highlighting conserved and variable regions.
 
 ### **Sample interface:**
@@ -46,8 +46,12 @@ When you run the tool, your browser will open and connect to the Streamlit appli
 #### Uploading a FASTA file:
 ![Upload Page](docs/Upload_Page.png)
 
-#### Conservation plot:
-![Conservation Plot](docs/Conservation_Plot.png)
+#### Chossing tie breaking method:
+![Choosing tie breaking](docs/Choosing_tiebreaking.png)
+
+
+#### Consensus sequence and conservation plot:
+![Consensus sequence and conservation plot](docs/conservation_and_consensus.png)
 
 ## Scoring Method
 
