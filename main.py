@@ -1,52 +1,98 @@
 import streamlit as st
-from Bio import SeqIO
+import matplotlib.pyplot as plt
+import numpy as np
+from Bio import AlignIO
+from Bio.Align import AlignInfo
+from io import StringIO
 import subprocess
-import os
+from collections import Counter
 
-# Set page config
-st.set_page_config(layout="wide")
+def run_mafft(fasta_file, output_file="aligned.fasta"):
+    # Run MAFFT to align the protein sequences.
+    cmd = ["mafft", "--auto", fasta_file]
+    with open(output_file, "w") as f:
+        subprocess.run(cmd, stdout=f, check=True)
+    return output_file
 
-# Function to write sequences to a temporary file
-def write_fasta(sequences, filename):
-    with open(filename, "w") as f:
-        for i, seq in enumerate(sequences):
-            f.write(f">seq{i}\n{seq}\n")
+def calculate_conservation(alignment_file, tie_strategy="mark_as_X"):
+    alignment = AlignIO.read(alignment_file, "fasta")
+    scores = []
+    consensus_list = []
+    
+    for i in range(len(alignment[0])):  
+        column = [alignment[j].seq[i] for j in range(len(alignment))]
+        column_no_gaps = [residue for residue in column if residue != "-"]
+        
+        if column_no_gaps:
+            counts = Counter(column_no_gaps)
+            max_count = max(counts.values())
+            most_common_residues = [residue for residue, count in counts.items() if count == max_count]
+            
+            if len(most_common_residues) > 1:
+                if tie_strategy == "mark_as_X":
+                    consensus_residue = 'X'
+                else:  # tie_strategy == "first_winner"
+                    # Pick the residue that appears first in the alignment column
+                    for residue in column_no_gaps:
+                        if residue in most_common_residues:
+                            consensus_residue = residue
+                            break
+            else:
+                consensus_residue = most_common_residues[0]
+                
+            score = max_count / len(column_no_gaps)
+        else:
+            consensus_residue = "-"  
+            score = 0
+        
+        scores.append(score)
+        consensus_list.append(consensus_residue)
+    
+    consensus = "".join(consensus_list)
+    return scores, consensus
 
-# Function to run MEME for motif discovery
-def run_meme(input_fasta, output_dir, minw=6, maxw=20):
-    cmd = [
-        "meme", input_fasta,
-        "-oc", output_dir,
-        "-minw", str(minw),
-        "-maxw", str(maxw),
-        "-mod", "zoops",
-        "-nmotifs", "3"
-    ]
-    subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+def plot_conservation(scores):
+    """Plot conservation scores along the sequence."""
+    plt.figure(figsize=(12, 4))
+    plt.plot(scores, marker='o', linestyle='-', color='b')
+    plt.xlabel("Position")
+    plt.ylabel("Conservation Score")
+    plt.title("Sequence Conservation Analysis")
+    plt.ylim(0, 1)
+    st.pyplot(plt)
 
 # Streamlit UI
-st.title("De Novo Transcription Factor Binding Site Prediction")
-st.markdown("*Find motifs for transcription factor binding sites using MEME.*")
+st.title("Sequence Diversity Analyzer")
+uploaded_file = st.file_uploader("Upload a FASTA file with multiple sequences", type=["fasta"])
 
-# File uploader
-uploaded_file = st.file_uploader("Upload a FASTA file", type=["fna", "fa", "fasta"])
 if uploaded_file:
-    sequences = [str(record.seq) for record in SeqIO.parse(uploaded_file, "fasta")]
-    st.write(f"Loaded {len(sequences)} sequences.")
+    tie_strategy = st.radio(
+        "Choose tie-breaking strategy for consensus calculation:",
+        ("Mark ties as X", "Choose first winner")
+    )
+
+    st.info("""
+    **When to use:**
+    - *Mark ties as X:*  
+    Use this if you want to visualize positions where multiple residues are equally common.  
+    Ideal for reporting, visualization, or further analysis that tolerates ambiguity.
     
-    # Set motif search parameters
-    min_width = st.slider("Minimum motif width", 6, 15, 6)
-    max_width = st.slider("Maximum motif width", 15, 30, 20)
+    - *Choose first winner:*  
+    Use this if you need a clean, unambiguous consensus sequence for downstream tasks like primer design, modeling, or automated pipelines.
+    """)
+
+    # Map user choice to argument value
+    tie_strategy_arg = "mark_as_X" if tie_strategy == "Mark ties as X" else "first_winner"
+
+    fasta_content = uploaded_file.getvalue().decode("utf-8")
+    fasta_path = "input.fasta"
+    with open(fasta_path, "w") as f:
+        f.write(fasta_content)
     
-    # Run MEME button
-    if st.button("Run MEME for Motif Discovery"):
-        fasta_filename = "temp_sequences.fasta"
-        output_dir = "meme_output"
-        
-        write_fasta(sequences, fasta_filename)
-        run_meme(fasta_filename, output_dir, min_width, max_width)
-        
-        if os.path.exists(os.path.join(output_dir, "meme.html")):
-            st.markdown(f"[View MEME results](./{output_dir}/meme.html)", unsafe_allow_html=True)
-        else:
-            st.error("MEME analysis failed. Check the logs.")
+    st.markdown("**Running MAFFT for alignment...**")
+    aligned_file = run_mafft(fasta_path)
+    st.markdown("**Calculating conservation scores...**")
+    scores, consensus = calculate_conservation(aligned_file, tie_strategy=tie_strategy_arg)
+    st.markdown(f"**Consensus Sequence:** `{consensus}`")
+    plot_conservation(scores)
