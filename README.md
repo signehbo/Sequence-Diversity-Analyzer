@@ -10,21 +10,14 @@ The project is developed for the course [MOL3022 - Bioinformatics - Method Orien
    - You can obtain protein sequences from [UniProt KnowledgeBase](https://www.uniprot.org/uniprotkb?query=reviewed:true) by clicking the "Download" button.
    - Ensure the file is in uncompressed FASTA format before proceeding.
 
-2. **Install MAFFT.**
-   - The tool requires MAFFT for multiple sequence alignment. Install it using the following commands:
-     - **Ubuntu/Debian:** `sudo apt install mafft`
-     - **Mac (Homebrew):** `brew install mafft`
-     - **Windows:** Download from 
-     [MAFFT website](https://mafft.cbrc.jp/alignment/software/) and add it to your system's PATH.
-
-3. **Install the necessary dependencies.**
+2. **Install the necessary dependencies.**
    - Open a terminal and navigate to the project folder.
    - Run the command:
      ```
      pip install -r requirements.txt
      ```
 
-4. **Run the project using Streamlit.**
+3. **Run the project using Streamlit.**
    - Execute the following command in the terminal:
      ```
      streamlit run main.py
@@ -36,9 +29,11 @@ When you run the tool, your browser will open and connect to the Streamlit appli
 
 ### **Features:**
 - **Upload a FASTA file**: The tool accepts a multi-sequence FASTA file as input.
-- **Align sequences**: The tool automatically aligns sequences using MAFFT.
+- **Padding and sanitizing sequences**: The tool pads and sanitizes sequences to ensure that they are the same length and dont contain dots or spaces.
 - **Compute conservation scores**: Each position in the alignment receives a conservation score, indicating how conserved the residue is across sequences.
 - **View a consensus sequence**: The most common residues at each position are displayed. The user can choose between two tie-breaking strategies for consensus calculation.
+Mark ties as X: If multiple residues have the same frequency, they are marked as 'X'.
+Choose first winner: The first most common residue found in the alignment column is chosen.
 - **Visualize conservation**: A graph plots conservation scores across the sequence, highlighting conserved and variable regions.
 
 ### **Sample interface:**
@@ -57,14 +52,11 @@ When you run the tool, your browser will open and connect to the Streamlit appli
 
 The conservation score is calculated as:
   ```
-  Score = 1 - (Number of unique residues at position / Total sequences)
+  Score = (Most frequent residue count) / (Total number of residues at position)
+
   ```
-A score of **1.0** indicates complete conservation at that position, while lower scores indicate more variability.
-
-## Sample Data
-
-If you don’t have a FASTA file, you can download a sample file from the tool’s interface to test its functionality.
+A score of **1.0** indicates complete conservation at that position (all residues are identical across sequences), while lower scores indicate more variability.
 
 ---
-This tool provides an intuitive way to analyze protein sequence conservation and can be applied to evolutionary studies, protein function analysis, and mutation impact assessments.
+This tool provides a way to analyze protein sequence conservation and generate a consensus sequence.
 

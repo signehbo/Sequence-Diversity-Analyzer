@@ -1,21 +1,45 @@
 import streamlit as st
 import matplotlib.pyplot as plt
-import numpy as np
 from Bio import AlignIO
-from Bio.Align import AlignInfo
-from io import StringIO
-import subprocess
 from collections import Counter
 
-def run_mafft(fasta_file, output_file="aligned.fasta"):
-    # Run MAFFT to align the protein sequences.
-    cmd = ["mafft", "--auto", fasta_file]
-    with open(output_file, "w") as f:
-        subprocess.run(cmd, stdout=f, check=True)
-    return output_file
+def pad_fasta_sequences(input_fasta, output_fasta):
+    sequences = []
+    headers = []
+    
+    # Parse FASTA
+    with open(input_fasta, "r") as f:
+        current_header = None
+        current_seq = ""
+        for line in f:
+            line = line.strip()
+            if line.startswith(">"):
+                if current_header is not None:
+                    sequences.append(current_seq)
+                    headers.append(current_header)
+                current_header = line
+                current_seq = ""
+            else:
+                current_seq += line.replace(" ", "").replace(".", "")  # Clean up
+        # Add the last sequence
+        if current_header is not None:
+            sequences.append(current_seq)
+            headers.append(current_header)
+    
+    # Pad sequences
+    max_len = max(len(seq) for seq in sequences)
+    padded_sequences = [seq.ljust(max_len, "-") for seq in sequences]
+    
+    # Write output
+    with open(output_fasta, "w") as f:
+        for h, s in zip(headers, padded_sequences):
+            f.write(f"{h}\n{s}\n")
+    return output_fasta 
 
+#Helper function to calculate conservation scores
 def calculate_conservation(alignment_file, tie_strategy="mark_as_X"):
     alignment = AlignIO.read(alignment_file, "fasta")
+    print(alignment)
     scores = []
     consensus_list = []
     
@@ -51,7 +75,7 @@ def calculate_conservation(alignment_file, tie_strategy="mark_as_X"):
     consensus = "".join(consensus_list)
     return scores, consensus
 
-
+#Helper function to plot conservation scores
 def plot_conservation(scores):
     """Plot conservation scores along the sequence."""
     plt.figure(figsize=(12, 4))
@@ -62,9 +86,10 @@ def plot_conservation(scores):
     plt.ylim(0, 1)
     st.pyplot(plt)
 
+#Main function run when user runs streamlit run main.py in terminal
 # Streamlit UI
 st.title("Sequence Diversity Analyzer")
-uploaded_file = st.file_uploader("Upload a FASTA file with multiple sequences", type=["fasta"])
+uploaded_file = st.file_uploader("Upload a FASTA file with multiple sequences, from for example UniProt", type=["fasta"])
 
 if uploaded_file:
     tie_strategy = st.radio(
@@ -75,11 +100,12 @@ if uploaded_file:
     st.info("""
     **When to use:**
     - *Mark ties as X:*  
-    Use this if you want to visualize positions where multiple residues are equally common.  
-    Ideal for reporting, visualization, or further analysis that tolerates ambiguity.
+    Shows an 'X' where multiple residues are equally common.  
+    Good for visual analysis and identifying uncertain positions.
     
     - *Choose first winner:*  
-    Use this if you need a clean, unambiguous consensus sequence for downstream tasks like primer design, modeling, or automated pipelines.
+    Picks the first most common residue found.  
+    Best for creating a clear consensus sequence for further use
     """)
 
     # Map user choice to argument value
@@ -90,8 +116,9 @@ if uploaded_file:
     with open(fasta_path, "w") as f:
         f.write(fasta_content)
     
-    st.markdown("**Running MAFFT for alignment...**")
-    aligned_file = run_mafft(fasta_path)
+    st.markdown("**Aligning by padding sequences to the longest length...**")
+    aligned_file = "aligned.fasta"
+    pad_fasta_sequences(fasta_path, aligned_file)
     st.markdown("**Calculating conservation scores...**")
     scores, consensus = calculate_conservation(aligned_file, tie_strategy=tie_strategy_arg)
     st.markdown(f"**Consensus Sequence:** `{consensus}`")
