@@ -73,6 +73,7 @@ def calculate_conservation(alignment_file, tie_strategy="mark_as_X"):
         consensus_list.append(consensus_residue)
     
     consensus = "".join(consensus_list)
+    print("Conservation scores: ", scores)
     return scores, consensus
 
 #Helper function to plot conservation scores
