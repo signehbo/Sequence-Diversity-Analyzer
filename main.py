@@ -2,6 +2,8 @@ import streamlit as st
 import matplotlib.pyplot as plt
 from Bio import AlignIO
 from collections import Counter
+import gzip
+import io
 
 def pad_fasta_sequences(input_fasta, output_fasta):
     sequences = []
@@ -111,8 +113,15 @@ if uploaded_file:
 
     # Map user choice to argument value
     tie_strategy_arg = "mark_as_X" if tie_strategy == "Mark ties as X" else "first_winner"
+    
+    uploaded_bytes = uploaded_file.read()  # Read the uploaded file content as bytes
 
-    fasta_content = uploaded_file.getvalue().decode("utf-8")
+    if uploaded_bytes[:2] == b'\x1f\x8b':  
+        with gzip.GzipFile(fileobj=io.BytesIO(uploaded_bytes), mode='rb') as f:
+            fasta_content = f.read().decode("utf-8")  # Decode after reading
+    else:
+        fasta_content = uploaded_bytes.decode("utf-8")
+
     fasta_path = "input.fasta"
     with open(fasta_path, "w") as f:
         f.write(fasta_content)
