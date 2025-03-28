@@ -7,8 +7,8 @@ The project is developed for the course [MOL3022 - Bioinformatics - Method Orien
 ## How to run the project
 
 1. **Download a protein sequence dataset in FASTA format.**
-   - You can obtain protein sequences from [UniProt KnowledgeBase](https://www.uniprot.org/uniprotkb?query=reviewed:true) by clicking the "Download" button.
-   - Ensure the file is in uncompressed FASTA format before proceeding.
+   - You can obtain protein sequences from [UniProt KnowledgeBase](https://www.uniprot.org/uniprotkb?query=reviewed:true) by clicking the "Download" button, after selecting multiple sequences.
+   - The tool accepts both compressed and uncompressed FASTA files.
 
 2. **Install the necessary dependencies.**
    - Open a terminal and navigate to the project folder.
